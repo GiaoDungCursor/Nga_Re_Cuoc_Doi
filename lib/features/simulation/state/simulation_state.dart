@@ -404,35 +404,38 @@ class SimulationNotifier extends StateNotifier<SimulationStateData> {
       wellBeingScore: prevChar.wellBeingScore - 1.0, // Lão hóa nhẹ
     );
 
-    // Tải sự kiện của năm
+    // Tải sự kiện của năm — luôn có event (fallback là quiet year)
     final nextEvent = _loadScheduledEventForYear(nextYear);
 
     state = state.copyWith(
       character: updatedChar,
       currentEvent: nextEvent,
-      clearCurrentEvent: nextEvent == null,
       clearSelectedChoice: true,
       clearSelectedSubChoice: true,
       clearSelectedReflection: true,
-      phase: nextEvent != null ? SimulationPhase.yearIntro : SimulationPhase.yearSummary,
+      reflectionOptions: const [],
+      phase: SimulationPhase.yearIntro,
     );
   }
 
-  // Tải sự kiện, nếu 2030-2036 thì tạo sự kiện bình lặng chứ không trả về null
-  Event? _loadScheduledEventForYear(int year) {
-    if (year >= 2030 && year <= 2036) {
-      return createQuietYearEvent(year);
-    }
+  // Tải sự kiện — luôn trả về Event (không bao giờ null)
+  Event _loadScheduledEventForYear(int year) {
+    Event? found;
     switch (year) {
       case 2027:
-        return _findEventById('short_course'); // Small
+        found = _findEventById('short_course');
+        break;
       case 2028:
-        return _findEventById('choose_specialization'); // Medium
+        found = _findEventById('choose_specialization');
+        break;
       case 2029:
-        return _findEventById('graduate_or_startup'); // Turning Point
+        found = _findEventById('graduate_or_startup');
+        break;
       default:
-        return null;
+        break;
     }
+    // Fallback an toàn: Quiet year cho bất kỳ năm nào không có sự kiện được định nghĩa
+    return found ?? createQuietYearEvent(year);
   }
 
   Event? _findEventById(String id) {

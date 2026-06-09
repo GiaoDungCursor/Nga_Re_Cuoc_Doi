@@ -787,95 +787,176 @@ class SimulationScreen extends ConsumerWidget {
   }
 
   // ==========================================
-  // PHASE 5: REFLECTION (EDUCATIONAL VALUE)
+  // PHASE 5: REFLECTION — Kết quả Quyết Định
   // ==========================================
   Widget _buildReflection(BuildContext context, SimulationStateData state, SimulationNotifier notifier) {
-    final question = state.reflectionQuestion ?? 'Bạn nghĩ gì về quyết định vừa qua?';
+    final question = state.reflectionQuestion ?? 'Tư duy của bạn sau quyết định này là gì?';
     final options = state.reflectionOptions;
+    final event = state.currentEvent;
+    final choice = state.selectedChoice;
+    final sub = state.selectedSubChoice;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 24),
-        const Center(
-          child: Icon(Icons.psychology, color: AppColors.neonCyan, size: 48),
-        ),
-        const SizedBox(height: 16),
-        const Center(
-          child: Text(
-            'PHẢN TƯ GIÁO DỤC (REFLECTION)',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.neonCyan, letterSpacing: 2),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.bgCard,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.glassBorder),
-          ),
-          child: Text(
-            question,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14.5, color: AppColors.textPrimary, height: 1.5, fontWeight: FontWeight.w600),
-          ),
-        ),
-        const SizedBox(height: 24),
-        const Text(
-          'Lựa chọn phản ánh tư duy của bạn:',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textMuted),
-        ),
-        const SizedBox(height: 10),
-        Expanded(
-          child: ListView.builder(
-            itemCount: options.length,
-            itemBuilder: (context, index) {
-              final opt = options[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10.0),
-                child: ElevatedButton(
-                  onPressed: () => notifier.selectReflection(opt),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.01),
-                    side: const BorderSide(color: AppColors.glassBorder),
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    // Nếu không có options → tự động bỏ qua phase này
+    if (options.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifier.selectReflection('Bỏ qua');
+      });
+      return const Center(child: CircularProgressIndicator(color: AppColors.neonCyan));
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          // ── Tóm tắt Sự kiện & Quyết định vừa thực hiện ──
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.bgCard,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nhãn SỰ KIỆN
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.neonViolet.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.neonViolet.withOpacity(0.4)),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: AppColors.neonCyan.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          String.fromCharCode(65 + index),
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.neonCyan),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          opt,
-                          textAlign: TextAlign.left,
-                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
+                  child: const Text(
+                    'SỰ KIỆN NĂM NAY',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.neonViolet, letterSpacing: 1),
                   ),
                 ),
-              );
-            },
+                const SizedBox(height: 10),
+                Text(
+                  event?.title ?? 'Sự kiện trong năm',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1.3),
+                ),
+                if (event?.description != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    event!.description,
+                    style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.5),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                const SizedBox(height: 14),
+                const Divider(color: AppColors.glassBorder),
+                const SizedBox(height: 10),
+                // Nhãn QUYẾT ĐỊNH
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.neonCyan.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.neonCyan.withOpacity(0.4)),
+                  ),
+                  child: const Text(
+                    'QUYẾT ĐỊNH CỦA BẠN',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.neonCyan, letterSpacing: 1),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (choice != null)
+                  Text(
+                    '• ${choice.title}',
+                    style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.w600, height: 1.4),
+                  ),
+                if (sub != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '↳ ${sub.title}',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    sub.log,
+                    style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted, fontStyle: FontStyle.italic, height: 1.4),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 20),
+          // ── Câu hỏi tư duy ────────────────────────────────
+          const Text(
+            'TƯ DUY CỦA BẠN SAU QUYẾT ĐỊNH NÀY:',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textMuted, letterSpacing: 1),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.neonCyan.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.neonCyan.withOpacity(0.2)),
+            ),
+            child: Text(
+              question,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary, height: 1.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // ── Các lựa chọn tư duy ───────────────────────────
+          ...List.generate(options.length, (index) {
+            final opt = options[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10.0),
+              child: ElevatedButton(
+                onPressed: () => notifier.selectReflection(opt),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.01),
+                  side: const BorderSide(color: AppColors.glassBorder),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 22,
+                      height: 22,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.neonCyan.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        String.fromCharCode(65 + index),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.neonCyan),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        opt,
+                        textAlign: TextAlign.left,
+                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 18),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
+
+
+
 
   // ==========================================
   // PHASE 6: YEAR SUMMARY (SHOW RESULTS)
