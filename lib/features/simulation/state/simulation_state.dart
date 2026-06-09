@@ -47,11 +47,15 @@ class SimulationStateData {
     Character? character,
     SimulationPhase? phase,
     Event? currentEvent,
+    bool clearCurrentEvent = false,
     Choice? selectedChoice,
+    bool clearSelectedChoice = false,
     SubChoice? selectedSubChoice,
+    bool clearSelectedSubChoice = false,
     String? reflectionQuestion,
     List<String>? reflectionOptions,
     String? selectedReflection,
+    bool clearSelectedReflection = false,
     List<String>? lifeLog,
     bool? isGameOver,
     List<DecisionHistory>? decisionsHistory,
@@ -60,12 +64,12 @@ class SimulationStateData {
     return SimulationStateData(
       character: character ?? this.character,
       phase: phase ?? this.phase,
-      currentEvent: currentEvent, // Cho phép null
-      selectedChoice: selectedChoice, // Cho phép null
-      selectedSubChoice: selectedSubChoice, // Cho phép null
+      currentEvent: clearCurrentEvent ? null : (currentEvent ?? this.currentEvent),
+      selectedChoice: clearSelectedChoice ? null : (selectedChoice ?? this.selectedChoice),
+      selectedSubChoice: clearSelectedSubChoice ? null : (selectedSubChoice ?? this.selectedSubChoice),
       reflectionQuestion: reflectionQuestion ?? this.reflectionQuestion,
       reflectionOptions: reflectionOptions ?? this.reflectionOptions,
-      selectedReflection: selectedReflection, // Cho phép null
+      selectedReflection: clearSelectedReflection ? null : (selectedReflection ?? this.selectedReflection),
       lifeLog: lifeLog ?? this.lifeLog,
       isGameOver: isGameOver ?? this.isGameOver,
       decisionsHistory: decisionsHistory ?? this.decisionsHistory,
@@ -201,8 +205,8 @@ class SimulationNotifier extends StateNotifier<SimulationStateData> {
   // Quay lại pha chọn chính nếu muốn đổi ý
   void backToMainDecision() {
     state = state.copyWith(
-      selectedChoice: null,
-      selectedSubChoice: null,
+      clearSelectedChoice: true,
+      clearSelectedSubChoice: true,
       phase: SimulationPhase.mainDecision,
     );
   }
@@ -210,7 +214,7 @@ class SimulationNotifier extends StateNotifier<SimulationStateData> {
   // Quay lại pha chọn phụ nếu muốn đổi ý
   void backToSubDecision() {
     state = state.copyWith(
-      selectedSubChoice: null,
+      clearSelectedSubChoice: true,
       phase: SimulationPhase.subDecision,
     );
   }
@@ -406,9 +410,10 @@ class SimulationNotifier extends StateNotifier<SimulationStateData> {
     state = state.copyWith(
       character: updatedChar,
       currentEvent: nextEvent,
-      selectedChoice: null,
-      selectedSubChoice: null,
-      selectedReflection: null,
+      clearCurrentEvent: nextEvent == null,
+      clearSelectedChoice: true,
+      clearSelectedSubChoice: true,
+      clearSelectedReflection: true,
       phase: nextEvent != null ? SimulationPhase.yearIntro : SimulationPhase.yearSummary,
     );
   }
