@@ -248,7 +248,11 @@ class _CareerDnaScreenState extends ConsumerState<CareerDnaScreen> {
                 // Button CTA
                 ElevatedButton(
                   onPressed: () {
-                    ref.read(simulationProvider.notifier).startNewLife(activeKey);
+                    final bg = quizState.backgroundAnswers;
+                    ref.read(simulationProvider.notifier).startNewLife(
+                      activeKey,
+                      backgroundAnswers: bg,
+                    );
                     context.pushReplacement('/simulation');
                   },
                   style: ElevatedButton.styleFrom(

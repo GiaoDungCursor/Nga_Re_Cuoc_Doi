@@ -81,69 +81,262 @@ class SimulationStateData {
 class SimulationNotifier extends StateNotifier<SimulationStateData> {
   SimulationNotifier() : super(SimulationStateData(lifeLog: []));
 
-  // Khởi động lượt chơi mới (Năm 2026)
-  void startNewLife(String archetype) {
-    final char = Character.fromArchetype(archetype);
-    
-    // Tải sự kiện khai cuộc năm 2026 sử dụng cấu trúc Choice và SubChoice mới
-    final initEvent = Event(
-      id: 'init_2026',
-      title: 'Chọn Đường Học Vấn & Sự Nghiệp (2026)',
-      description: 'Năm 2026, bạn tốt nghiệp trung học phổ thông và bắt đầu đặt những viên gạch đầu tiên cho lộ trình phát triển sự nghiệp của mình. Bạn sẽ lựa chọn ngã rẽ nào?',
-      type: 'choice',
-      category: 'career',
-      weight: DecisionWeight.turningPoint,
-      choices: [
-        Choice(
-          id: 'opt_uni',
-          title: 'Học Đại học CNTT hệ chính quy (Học phí cao, tăng nền tảng).',
-          description: 'Học tập 4 năm để có kiến thức nền tảng vững vàng cho sự nghiệp lâu dài.',
-          subChoices: [
-            SubChoice(
-              id: 'uni_hard',
-              title: 'Nỗ lực học tập 30h/tuần',
-              description: 'Tiến bộ nhanh nhất, đổi lại học phí cao và tốn sức.',
-              cost: const ResourceCost(time: 10, energy: 6, money: 25.0),
-              effects: const {'careerScore': 20.0, 'skillScore': 15.0, 'financeScore': -30.0, 'wellBeingScore': 5.0, 'burnout': 15.0},
-              log: 'Bạn chọn học Đại học CNTT chính quy, đầu tư trang thiết bị tốt nhất và học tập chăm chỉ.',
-            ),
-            SubChoice(
-              id: 'uni_normal',
-              title: 'Học vừa sức 15h/tuần',
-              description: 'Cân bằng giữa việc học trên giảng đường và giữ sức khỏe.',
-              cost: const ResourceCost(time: 6, energy: 3, money: 15.0),
-              effects: const {'careerScore': 12.0, 'skillScore': 8.0, 'financeScore': -20.0, 'wellBeingScore': 10.0, 'burnout': 5.0},
-              log: 'Bạn chọn học Đại học vừa phải, giữ tinh thần thảnh thơi học hỏi thêm bên ngoài.',
-            ),
-          ],
-        ),
-        Choice(
-          id: 'opt_academy',
-          title: 'Học Cao đẳng / Trung tâm đào tạo thực chiến (Ra trường nhanh, tiết kiệm).',
-          description: 'Rút ngắn thời gian đào tạo nghề để đi làm tích lũy kinh nghiệm sớm.',
-          subChoices: [
-            SubChoice(
-              id: 'academy_hard',
-              title: 'Học ngày đêm để lấy chứng chỉ chuyên gia.',
-              description: 'Tập trung học nghề thực hành cật lực để có hồ sơ nổi trội.',
-              cost: const ResourceCost(time: 8, energy: 4, money: 12.0),
-              effects: const {'careerScore': 15.0, 'skillScore': 22.0, 'financeScore': -15.0, 'wellBeingScore': 5.0, 'burnout': 12.0},
-              log: 'Bạn chọn học nghề lập trình thực chiến, sẵn sàng đi làm sớm với vốn kỹ năng thực hành tốt.',
-            ),
-          ],
-        ),
-      ],
-    );
+  // Khởi động lượt chơi mới — sử dụng bối cảnh cá nhân từ quiz
+  void startNewLife(String archetype, {Map<String, String> backgroundAnswers = const {}}) {
+    final char = Character.fromArchetype(archetype, backgroundAnswers: backgroundAnswers);
+
+    // ── Tạo sự kiện khai cuộc dựa trên trình độ học vấn thực tế ──
+    final edu = backgroundAnswers['educationLevel'] ?? 'edu_highschool';
+    final field = backgroundAnswers['studyField'] ?? 'field_unknown';
+    final status = backgroundAnswers['currentStatus'] ?? 'status_studying';
+
+    final initEvent = _buildOpeningEvent(edu, field, status);
 
     state = SimulationStateData(
       character: char,
-      phase: SimulationPhase.yearIntro, // Bắt đầu ở màn giới thiệu năm mới
+      phase: SimulationPhase.yearIntro,
       currentEvent: initEvent,
       lifeLog: ['[Năm 2026] Khởi đầu lộ trình 10 năm phát triển sự nghiệp.'],
       isGameOver: false,
       decisionsHistory: [],
     );
   }
+
+  /// Tạo sự kiện khai cuộc phù hợp với bối cảnh người dùng
+  Event _buildOpeningEvent(String edu, String field, String status) {
+    // ── Mô tả bối cảnh dựa trên trình độ ──────────────────
+    final String contextDesc;
+    switch (edu) {
+      case 'edu_highschool':
+        contextDesc = 'Năm 2026, bạn vừa tốt nghiệp THPT và đứng trước ngưỡng cửa quan trọng nhất cuộc đời — chọn con đường học vấn và sự nghiệp. Quyết định hôm nay sẽ định hình 10 năm tiếp theo.';
+        break;
+      case 'edu_vocational':
+        contextDesc = 'Năm 2026, bạn đang học nghề hoặc vừa tốt nghiệp trung cấp. Bạn có kỹ năng thực hành tốt nhưng muốn xây dựng nền tảng vững chắc hơn để tiến xa trong sự nghiệp.';
+        break;
+      case 'edu_studying':
+        contextDesc = 'Năm 2026, bạn đang là sinh viên đại học/cao đẳng. Đây là giai đoạn then chốt để đầu tư vào chuyên môn, thực tập và xây dựng mạng lưới quan hệ trước khi ra trường.';
+        break;
+      case 'edu_graduated':
+        contextDesc = 'Năm 2026, bạn đã tốt nghiệp đại học và bước vào thị trường lao động với nền tảng kiến thức vững chắc. Lúc này là thời điểm chứng tỏ giá trị của bản thân trong thực tiễn.';
+        break;
+      case 'edu_postgrad':
+        contextDesc = 'Năm 2026, với bằng thạc sĩ/tiến sĩ hoặc chứng chỉ chuyên nghiệp quốc tế, bạn có lợi thế cạnh tranh rõ rệt. Câu hỏi là bạn sẽ tận dụng lợi thế đó như thế nào?';
+        break;
+      default:
+        contextDesc = 'Năm 2026, một chương mới bắt đầu. Bạn đứng trước những lựa chọn định hình con đường sự nghiệp của mình.';
+    }
+
+    // ── Tên lĩnh vực ──────────────────────────────────────
+    final String fieldName;
+    switch (field) {
+      case 'field_tech': fieldName = 'Kỹ thuật & Công nghệ'; break;
+      case 'field_business': fieldName = 'Kinh tế & Kinh doanh'; break;
+      case 'field_health': fieldName = 'Y tế & Sức khỏe'; break;
+      case 'field_arts': fieldName = 'Nghệ thuật & Truyền thông'; break;
+      case 'field_social': fieldName = 'Khoa học Xã hội & Giáo dục'; break;
+      case 'field_agri': fieldName = 'Nông - Lâm - Ngư nghiệp'; break;
+      case 'field_law': fieldName = 'Pháp lý & Chính trị'; break;
+      default: fieldName = 'Đa lĩnh vực'; break;
+    }
+
+    // ── Tạo các lựa chọn phù hợp với trình độ & lĩnh vực ─
+    final List<Choice> choices = _buildOpeningChoices(edu, field, status, fieldName);
+
+    return Event(
+      id: 'init_2026',
+      title: 'Định Hướng Sự Nghiệp 2026',
+      description: '$contextDesc\n\nLĩnh vực của bạn: $fieldName. Bạn sẽ lựa chọn ngã rẽ nào?',
+      type: 'choice',
+      category: 'career',
+      weight: DecisionWeight.turningPoint,
+      choices: choices,
+    );
+  }
+
+  /// Các lựa chọn năm 2026 tùy theo trình độ học vấn
+  List<Choice> _buildOpeningChoices(String edu, String field, String status, String fieldName) {
+    // Người đã tốt nghiệp đại học / sau đại học
+    if (edu == 'edu_graduated' || edu == 'edu_postgrad') {
+      return [
+        Choice(
+          id: 'opt_career_build',
+          title: 'Tập trung phát triển sự nghiệp trong lĩnh vực $fieldName.',
+          description: 'Dùng bằng cấp và kiến thức để tăng tốc thăng tiến và xây dựng thương hiệu cá nhân.',
+          subChoices: [
+            SubChoice(
+              id: 'career_intensive',
+              title: 'Cày cuốc, nhận thêm dự án và tích lũy kinh nghiệm dày dặn.',
+              description: 'Tăng tốc sự nghiệp bằng cách dốc toàn lực vào công việc.',
+              cost: const ResourceCost(time: 10, energy: 6, money: 5.0),
+              effects: const {'careerScore': 22.0, 'skillScore': 12.0, 'networkScore': 8.0, 'burnout': 15.0, 'wellBeingScore': -5.0},
+              log: 'Bạn dồn toàn lực vào công việc chuyên môn, thăng tiến nhanh và được đánh giá cao.',
+            ),
+            SubChoice(
+              id: 'career_balanced',
+              title: 'Làm việc vừa phải, song song học thêm kỹ năng mới.',
+              description: 'Cân bằng giữa làm việc và nâng cao năng lực.',
+              cost: const ResourceCost(time: 6, energy: 3, money: 3.0),
+              effects: const {'careerScore': 12.0, 'skillScore': 15.0, 'networkScore': 5.0, 'wellBeingScore': 5.0},
+              log: 'Bạn duy trì nhịp độ bền vững, vừa tích lũy kinh nghiệm vừa học thêm công cụ mới.',
+            ),
+          ],
+        ),
+        Choice(
+          id: 'opt_upskill',
+          title: 'Đầu tư nâng cấp chuyên môn — học chứng chỉ quốc tế hoặc khóa chuyên sâu.',
+          description: 'Tận dụng thời gian để trở thành chuyên gia cốt lõi trong lĩnh vực.',
+          subChoices: [
+            SubChoice(
+              id: 'upskill_cert',
+              title: 'Học chứng chỉ quốc tế uy tín (PMP, CFA, IELTS, AWS...)',
+              description: 'Nâng cao giá trị bản thân với chứng nhận được thị trường công nhận.',
+              cost: const ResourceCost(time: 8, energy: 4, money: 15.0),
+              effects: const {'skillScore': 25.0, 'careerScore': 15.0, 'networkScore': 5.0},
+              log: 'Bạn đạt chứng chỉ quốc tế uy tín, CV bỗng nổi bật hơn hẳn so với đồng nghiệp cùng cấp.',
+            ),
+          ],
+        ),
+        Choice(
+          id: 'opt_startup_grad',
+          title: 'Tận dụng kiến thức chuyên môn để khởi nghiệp hoặc freelance.',
+          description: 'Chuyển kiến thức thành thu nhập độc lập.',
+          subChoices: [
+            SubChoice(
+              id: 'startup_solo',
+              title: 'Nhận hợp đồng freelance, xây dựng thương hiệu cá nhân.',
+              description: 'Bắt đầu kiếm tiền từ kỹ năng chuyên môn một cách độc lập.',
+              cost: const ResourceCost(time: 9, energy: 5, money: 5.0),
+              effects: const {'careerScore': 18.0, 'networkScore': 15.0, 'financeScore': 10.0, 'burnout': 12.0},
+              log: 'Bạn bắt đầu nhận dự án freelance và xây dựng danh tiếng trong ngành một cách độc lập.',
+            ),
+          ],
+        ),
+      ];
+    }
+
+    // Đang đi học đại học
+    if (edu == 'edu_studying') {
+      return [
+        Choice(
+          id: 'opt_intern',
+          title: 'Tìm kiếm cơ hội thực tập trong lĩnh vực $fieldName.',
+          description: 'Kết hợp lý thuyết và thực tiễn, xây dựng mạng lưới quan hệ từ sớm.',
+          subChoices: [
+            SubChoice(
+              id: 'intern_top',
+              title: 'Nộp đơn vào công ty lớn, cạnh tranh cao.',
+              description: 'Thực tập tại môi trường chuyên nghiệp, có mentorship tốt.',
+              cost: const ResourceCost(time: 8, energy: 5, money: 3.0),
+              effects: const {'careerScore': 20.0, 'networkScore': 15.0, 'skillScore': 10.0, 'burnout': 10.0},
+              log: 'Bạn được nhận vào công ty uy tín, làm quen với môi trường chuyên nghiệp và xây dựng mạng lưới quan hệ.',
+            ),
+            SubChoice(
+              id: 'intern_startup',
+              title: 'Thực tập tại startup nhỏ — học được nhiều, tự do hơn.',
+              description: 'Môi trường linh hoạt, được giao nhiệm vụ thực tế ngay.',
+              cost: const ResourceCost(time: 6, energy: 3, money: 1.0),
+              effects: const {'skillScore': 15.0, 'careerScore': 10.0, 'networkScore': 10.0},
+              log: 'Bạn thực tập tại startup năng động, học được nhiều kỹ năng thực chiến đa dạng.',
+            ),
+          ],
+        ),
+        Choice(
+          id: 'opt_study_hard',
+          title: 'Tập trung học thật tốt, đạt học bổng hoặc thứ hạng cao.',
+          description: 'Đầu tư vào kết quả học tập để mở ra cơ hội tốt hơn sau khi ra trường.',
+          subChoices: [
+            SubChoice(
+              id: 'study_scholarship',
+              title: 'Nỗ lực đạt học bổng xuất sắc.',
+              description: 'Học bổng giúp tiết kiệm chi phí và mở ra cơ hội du học.',
+              cost: const ResourceCost(time: 10, energy: 6, money: 0.0),
+              effects: const {'skillScore': 20.0, 'careerScore': 12.0, 'financeScore': 15.0, 'burnout': 12.0},
+              log: 'Bạn đạt học bổng xuất sắc, giảm đáng kể học phí và được ghi nhận trong danh sách sinh viên tiêu biểu.',
+            ),
+          ],
+        ),
+      ];
+    }
+
+    // Học nghề / Trung cấp
+    if (edu == 'edu_vocational') {
+      return [
+        Choice(
+          id: 'opt_practice',
+          title: 'Tìm việc làm ngay trong lĩnh vực $fieldName để tích lũy kinh nghiệm thực tế.',
+          description: 'Áp dụng kỹ năng thực hành ngay vào thực tế, kiếm thu nhập sớm.',
+          subChoices: [
+            SubChoice(
+              id: 'practice_fulltime',
+              title: 'Đi làm toàn thời gian, học hỏi từ đồng nghiệp.',
+              description: 'Tích lũy kinh nghiệm thực tế nhanh nhất có thể.',
+              cost: const ResourceCost(time: 8, energy: 5, money: 2.0),
+              effects: const {'careerScore': 18.0, 'skillScore': 15.0, 'currentIncome': 6.0, 'financeScore': 5.0},
+              log: 'Bạn bắt đầu đi làm toàn thời gian, kiếm thu nhập và học hỏi nhanh trong môi trường thực tế.',
+            ),
+          ],
+        ),
+        Choice(
+          id: 'opt_upgrade_edu',
+          title: 'Học thêm để nâng cấp bằng cấp lên Cao đẳng/Đại học.',
+          description: 'Đầu tư thêm thời gian để có bằng cấp cao hơn, mở ra cơ hội tốt hơn.',
+          subChoices: [
+            SubChoice(
+              id: 'upgrade_part',
+              title: 'Học tại chức buổi tối, vừa đi làm vừa học.',
+              description: 'Vừa có thu nhập vừa cải thiện bằng cấp.',
+              cost: const ResourceCost(time: 9, energy: 5, money: 8.0),
+              effects: const {'skillScore': 12.0, 'careerScore': 10.0, 'burnout': 10.0, 'wellBeingScore': -5.0},
+              log: 'Bạn kiên trì học tại chức, vất vả nhưng mỗi ngày đang tiến gần hơn đến tấm bằng đại học.',
+            ),
+          ],
+        ),
+      ];
+    }
+
+    // Mặc định (THPT hoặc chưa xác định)
+    return [
+      Choice(
+        id: 'opt_uni_default',
+        title: 'Học Đại học / Cao đẳng — đầu tư nền tảng dài hạn.',
+        description: 'Học tập bài bản để có kiến thức nền tảng vững chắc trong lĩnh vực $fieldName.',
+        subChoices: [
+          SubChoice(
+            id: 'uni_hard',
+            title: 'Học chăm chỉ 30h/tuần, đầu tư nghiêm túc.',
+            description: 'Nỗ lực tối đa để có kết quả học tập xuất sắc.',
+            cost: const ResourceCost(time: 10, energy: 6, money: 20.0),
+            effects: const {'careerScore': 18.0, 'skillScore': 15.0, 'financeScore': -25.0, 'wellBeingScore': 5.0, 'burnout': 12.0},
+            log: 'Bạn chọn học đại học và đầu tư học tập chăm chỉ, xây dựng nền tảng vững chắc cho tương lai.',
+          ),
+          SubChoice(
+            id: 'uni_normal',
+            title: 'Học vừa phải, cân bằng cuộc sống.',
+            description: 'Duy trì kết quả tốt mà không kiệt sức.',
+            cost: const ResourceCost(time: 6, energy: 3, money: 15.0),
+            effects: const {'careerScore': 10.0, 'skillScore': 8.0, 'financeScore': -15.0, 'wellBeingScore': 10.0},
+            log: 'Bạn học đại học nhịp độ bình thường, vừa học vừa tận hưởng cuộc sống sinh viên.',
+          ),
+        ],
+      ),
+      Choice(
+        id: 'opt_work_early',
+        title: 'Đi làm sớm, học từ thực tế thay vì đại học.',
+        description: 'Tích lũy kinh nghiệm thực chiến ngay từ đầu, kiếm tiền sớm.',
+        subChoices: [
+          SubChoice(
+            id: 'work_hard',
+            title: 'Nhận bất kỳ công việc nào phù hợp, học việc tận tâm.',
+            description: 'Bắt đầu từ vị trí thấp nhất nhưng học hỏi rất nhanh.',
+            cost: const ResourceCost(time: 8, energy: 4, money: 0.0),
+            effects: const {'careerScore': 12.0, 'skillScore': 10.0, 'currentIncome': 5.0, 'financeScore': 3.0},
+            log: 'Bạn chọn đi làm ngay, học hỏi từ thực tế và bắt đầu kiếm thu nhập từ sớm.',
+          ),
+        ],
+      ),
+    ];
+  }
+
 
   // Tạo sự kiện "Năm bình lặng" để tránh trả về null
   Event createQuietYearEvent(int year) {
