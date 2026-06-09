@@ -6,15 +6,32 @@ import '../../../core/theme/app_colors.dart';
 import '../../assessment/state/quiz_state.dart';
 import '../../simulation/state/simulation_state.dart';
 
-class CareerDnaScreen extends ConsumerWidget {
+class CareerDnaScreen extends ConsumerStatefulWidget {
   const CareerDnaScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final quizState = ref.watch(quizProvider);
-    final archetypeKey = quizState.resultArchetype ?? 'sage';
+  ConsumerState<CareerDnaScreen> createState() => _CareerDnaScreenState();
+}
 
-    final data = _getArchetypeDetails(archetypeKey);
+class _CareerDnaScreenState extends ConsumerState<CareerDnaScreen> {
+  String? _selectedKey;
+
+  final List<String> _allArchetypes = [
+    'sage',
+    'creator',
+    'guardian',
+    'influencer',
+    'builder',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final quizState = ref.watch(quizProvider);
+    final recommendedKey = quizState.resultArchetype ?? 'sage';
+    
+    // Nếu chưa chọn gì thì mặc định chọn cái được khuyến nghị
+    final activeKey = _selectedKey ?? recommendedKey;
+    final activeData = _getArchetypeDetails(activeKey);
 
     return Scaffold(
       backgroundColor: AppColors.bgDark,
@@ -24,7 +41,7 @@ class CareerDnaScreen extends ConsumerWidget {
             center: const Alignment(0, -0.3),
             radius: 1.0,
             colors: [
-              data.color.withOpacity(0.25),
+              activeData.color.withOpacity(0.25),
               Colors.transparent,
             ],
           ),
@@ -37,7 +54,7 @@ class CareerDnaScreen extends ConsumerWidget {
               children: [
                 const SizedBox(height: 10),
                 const Text(
-                  'HỒ SƠ CAREER DNA',
+                  'HỒ SƠ CAREER DNA CỦA BẠN',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -45,13 +62,81 @@ class CareerDnaScreen extends ConsumerWidget {
                     letterSpacing: 2.0,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 16),
+                
+                // Horizontal List of Archetypes to select
+                SizedBox(
+                  height: 100,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _allArchetypes.length,
+                    itemBuilder: (context, index) {
+                      final key = _allArchetypes[index];
+                      final data = _getArchetypeDetails(key);
+                      final isSelected = key == activeKey;
+                      final isRecommended = key == recommendedKey;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedKey = key;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: const EdgeInsets.only(right: 12),
+                          width: 85,
+                          decoration: BoxDecoration(
+                            color: isSelected ? data.color.withOpacity(0.2) : AppColors.bgCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected ? data.color : AppColors.glassBorder,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Stack(
+                                alignment: Alignment.topRight,
+                                children: [
+                                  Text(
+                                    data.icon,
+                                    style: const TextStyle(fontSize: 28),
+                                  ),
+                                  if (isRecommended)
+                                    const Positioned(
+                                      top: -5,
+                                      right: -5,
+                                      child: Icon(Icons.star, color: AppColors.neonGold, size: 16),
+                                    )
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                data.shortName,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected ? data.color : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Tiêu đề của Lớp được chọn
                 ShaderMask(
                   shaderCallback: (bounds) => LinearGradient(
-                    colors: [AppColors.textPrimary, data.color],
+                    colors: [AppColors.textPrimary, activeData.color],
                   ).createShader(bounds),
                   child: Text(
-                    data.name.toUpperCase(),
+                    activeData.name.toUpperCase(),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontFamily: 'SpaceGrotesk',
@@ -76,10 +161,10 @@ class CareerDnaScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: AppColors.bgCard,
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: data.color.withOpacity(0.3), width: 1.5),
+                            border: Border.all(color: activeData.color.withOpacity(0.3), width: 1.5),
                             boxShadow: [
                               BoxShadow(
-                                color: data.color.withOpacity(0.15),
+                                color: activeData.color.withOpacity(0.15),
                                 blurRadius: 25,
                                 spreadRadius: 1,
                               )
@@ -88,7 +173,7 @@ class CareerDnaScreen extends ConsumerWidget {
                           child: Column(
                             children: [
                               Text(
-                                data.description,
+                                activeData.description,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontSize: 14,
@@ -98,15 +183,15 @@ class CareerDnaScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 25),
                               
-                              // Radar Chart
+                              // Radar Chart (Base on Quiz Scores, color matches selected archetype)
                               SizedBox(
                                 height: 210,
                                 child: RadarChart(
                                   RadarChartData(
                                     dataSets: [
                                       RadarDataSet(
-                                        fillColor: data.color.withOpacity(0.25),
-                                        borderColor: data.color,
+                                        fillColor: activeData.color.withOpacity(0.25),
+                                        borderColor: activeData.color,
                                         borderWidth: 2.5,
                                         entryRadius: 4,
                                         dataEntries: _getRadarEntries(quizState.scores),
@@ -140,7 +225,7 @@ class CareerDnaScreen extends ConsumerWidget {
                         const SizedBox(height: 20),
 
                         // Career Compatibility list (Top Phù hợp & Không Phù hợp)
-                        _buildCompatibilityList(data),
+                        _buildCompatibilityList(activeData),
 
                         const SizedBox(height: 20),
                         
@@ -163,13 +248,13 @@ class CareerDnaScreen extends ConsumerWidget {
                 // Button CTA
                 ElevatedButton(
                   onPressed: () {
-                    ref.read(simulationProvider.notifier).startNewLife(archetypeKey);
+                    ref.read(simulationProvider.notifier).startNewLife(activeKey);
                     context.pushReplacement('/simulation');
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     backgroundColor: Colors.transparent,
-                    shadowColor: data.color.withOpacity(0.4),
+                    shadowColor: activeData.color.withOpacity(0.4),
                     elevation: 8,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -180,7 +265,7 @@ class CareerDnaScreen extends ConsumerWidget {
                   child: Ink(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [data.color, AppColors.neonViolet],
+                        colors: [activeData.color, AppColors.neonViolet],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -190,17 +275,19 @@ class CareerDnaScreen extends ConsumerWidget {
                       alignment: Alignment.center,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Text(
-                            'Bắt đầu Mô phỏng Sự nghiệp (2026)',
-                            style: TextStyle(
+                            activeKey == recommendedKey 
+                              ? 'Chọn Lộ trình Khuyến nghị (2026)' 
+                              : 'Thử thách với Lộ trình này (2026)',
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                             ),
                           ),
-                          SizedBox(width: 8),
-                          Icon(Icons.play_arrow, color: Colors.white),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.play_arrow, color: Colors.white),
                         ],
                       ),
                     ),
@@ -216,18 +303,22 @@ class CareerDnaScreen extends ConsumerWidget {
 
   // Khởi tạo các dòng radar
   List<RadarEntry> _getRadarEntries(Map<String, int> scores) {
-    double logic = (scores['sage'] ?? 10).toDouble();
-    double creative = (scores['creator'] ?? 10).toDouble();
-    double stability = (scores['guardian'] ?? 10).toDouble();
-    double communication = (scores['influencer'] ?? 10).toDouble();
-    double execution = (scores['builder'] ?? 10).toDouble();
+    // Scores now have max of 200 (20 questions * 10 points) instead of 60.
+    // Let's normalize it to a smaller range for display, or just use raw. RadarChart scales automatically but we can cap it.
+    double logic = (scores['sage'] ?? 0).toDouble();
+    double creative = (scores['creator'] ?? 0).toDouble();
+    double stability = (scores['guardian'] ?? 0).toDouble();
+    double communication = (scores['influencer'] ?? 0).toDouble();
+    double execution = (scores['builder'] ?? 0).toDouble();
 
+    // Scale down if it's too high just so it looks good, or just let FlChart handle the max value automatically.
+    // Since FlChart handles relative values if we don't set min/max, we just pass the values directly.
     return [
-      RadarEntry(value: logic.clamp(5, 30)),
-      RadarEntry(value: creative.clamp(5, 30)),
-      RadarEntry(value: stability.clamp(5, 30)),
-      RadarEntry(value: communication.clamp(5, 30)),
-      RadarEntry(value: execution.clamp(5, 30)),
+      RadarEntry(value: logic > 0 ? logic : 5),
+      RadarEntry(value: creative > 0 ? creative : 5),
+      RadarEntry(value: stability > 0 ? stability : 5),
+      RadarEntry(value: communication > 0 ? communication : 5),
+      RadarEntry(value: execution > 0 ? execution : 5),
     ];
   }
 
@@ -308,7 +399,9 @@ class CareerDnaScreen extends ConsumerWidget {
     switch (key) {
       case 'sage':
         return const _ArchetypeUIHelper(
-          name: '🧙‍♂️ Nhà Thông Thái',
+          name: 'Nhà Thông Thái',
+          shortName: 'Sage',
+          icon: '🧙‍♂️',
           description: 'Bạn có tư duy logic sắc sảo, niềm đam mê nghiên cứu và khả năng phân tích dữ liệu phức tạp. Bạn đi tìm giải pháp tối ưu nhất cho nhân loại.',
           color: AppColors.neonCyan,
           suitableCareers: [
@@ -324,7 +417,9 @@ class CareerDnaScreen extends ConsumerWidget {
         );
       case 'creator':
         return const _ArchetypeUIHelper(
-          name: '🎨 Người Kiến Tạo',
+          name: 'Người Kiến Tạo',
+          shortName: 'Creator',
+          icon: '🎨',
           description: 'Bạn mang trong mình tâm hồn tự do và năng lực sáng tạo không giới hạn. Bạn luôn biến những ý tưởng trừu tượng thành những tác phẩm độc đáo.',
           color: AppColors.neonPink,
           suitableCareers: [
@@ -335,12 +430,14 @@ class CareerDnaScreen extends ConsumerWidget {
           unsuitableCareers: [
             _CareerMatch('Compliance Auditor', 25),
             _CareerMatch('Accountant', 18),
-            _CareerMatch('Database Administrator', 12),
+            _CareerMatch('Database Admin', 12),
           ],
         );
       case 'guardian':
         return const _ArchetypeUIHelper(
-          name: '🛡️ Người Bảo Vệ',
+          name: 'Người Bảo Vệ',
+          shortName: 'Guardian',
+          icon: '🛡️',
           description: 'Bạn cẩn thận, có tính tổ chức cao và là chỗ dựa vững chắc cho mọi hệ thống. Bạn yêu thích quy trình ổn định lâu dài và quản trị rủi ro tốt.',
           color: AppColors.neonGold,
           suitableCareers: [
@@ -356,16 +453,18 @@ class CareerDnaScreen extends ConsumerWidget {
         );
       case 'influencer':
         return const _ArchetypeUIHelper(
-          name: '🗣️ Kẻ Thuyết Phục',
+          name: 'Kẻ Thuyết Phục',
+          shortName: 'Influencer',
+          icon: '🗣️',
           description: 'Bạn sở hữu kỹ năng giao tiếp xuất sắc và khả năng kết nối con người vượt trội. Bạn có khả năng truyền cảm hứng và dẫn dắt đám đông.',
-          color: AppColors.neonPink,
+          color: AppColors.neonPink, // Trùng màu Creator, có thể đổi sang cam hoặc tím nhạt
           suitableCareers: [
             _CareerMatch('Product Manager', 95),
             _CareerMatch('Marketing Director', 89),
             _CareerMatch('Business Developer', 83),
           ],
           unsuitableCareers: [
-            _CareerMatch('Embedded Systems Engineer', 30),
+            _CareerMatch('Embedded Systems', 30),
             _CareerMatch('Research Scientist', 22),
             _CareerMatch('Archivist', 15),
           ],
@@ -373,12 +472,14 @@ class CareerDnaScreen extends ConsumerWidget {
       case 'builder':
       default:
         return const _ArchetypeUIHelper(
-          name: '🛠️ Người Thực Thi',
+          name: 'Người Thực Thi',
+          shortName: 'Builder',
+          icon: '🛠️',
           description: 'Bạn là con người của hành động thực tế. Thích tạo dựng sản phẩm, làm việc với máy móc, code lập trình hay xây dựng các cơ sở hạ tầng.',
           color: AppColors.neonViolet,
           suitableCareers: [
             _CareerMatch('Mobile App Developer', 91),
-            _CareerMatch('Backend Software Engineer', 85),
+            _CareerMatch('Backend Engineer', 85),
             _CareerMatch('IoT System Specialist', 79),
           ],
           unsuitableCareers: [
@@ -393,6 +494,8 @@ class CareerDnaScreen extends ConsumerWidget {
 
 class _ArchetypeUIHelper {
   final String name;
+  final String shortName;
+  final String icon;
   final String description;
   final Color color;
   final List<_CareerMatch> suitableCareers;
@@ -400,6 +503,8 @@ class _ArchetypeUIHelper {
 
   const _ArchetypeUIHelper({
     required this.name,
+    required this.shortName,
+    required this.icon,
     required this.description,
     required this.color,
     required this.suitableCareers,
